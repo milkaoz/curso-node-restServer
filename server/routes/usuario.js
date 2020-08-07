@@ -1,17 +1,19 @@
 const express = require('express');
-const app = express();
-const Usuario = require('../models/usuario');
 const bcrypt = require('bcrypt');
 // https://underscorejs.org/
 const _ = require('underscore');
-const { response } = require('express');
+
+const Usuario = require('../models/usuario');
+const { verificaToken, verificaAdmin_Role } = require('../middlewares/autenticacion');
+
+const app = express();
 
 app.get('/', function(req, res) {
     res.json('Hello World!');
 });
 
 // Obtener registro de usuario
-app.get('/usuario', function(req, res) {
+app.get('/usuario', verificaToken, function(req, res) {
 
     let desde = Number(req.query.desde) || 0;
     let limite = Number(req.query.limite) || 0;
@@ -28,7 +30,7 @@ app.get('/usuario', function(req, res) {
             }
 
             Usuario.count({ estado: true }, (err1, conteo) => {
-                res.status(200).json({
+                return res.status(200).json({
                     ok: true,
                     cantidad: conteo,
                     usuarios
@@ -39,7 +41,7 @@ app.get('/usuario', function(req, res) {
 });
 
 // Crear un nuevo usuario
-app.post('/usuario', function(req, res) {
+app.post('/usuario', [verificaToken, verificaAdmin_Role], function(req, res) {
 
     let body = req.body;
 
@@ -70,7 +72,7 @@ app.post('/usuario', function(req, res) {
 });
 
 // Actualizar datos de usuario
-app.put('/usuario/:id', function(req, res) {
+app.put('/usuario/:id', [verificaToken, verificaAdmin_Role], function(req, res) {
 
     let _id = req.params.id;
 
@@ -105,7 +107,7 @@ app.put('/usuario/:id', function(req, res) {
 });
 
 // Elimina un usuario
-app.delete('/usuario/:id', function(req, res) {
+app.delete('/usuario/:id', [verificaToken, verificaAdmin_Role], function(req, res) {
 
     let id = req.params.id;
     let cambiaEstado = {
@@ -123,6 +125,7 @@ app.delete('/usuario/:id', function(req, res) {
         }
 
         if (!usuarioBorrado) {
+            console.log('Usuario no encontrado');
             return res.status(400).json({
                 ok: false,
                 err: {
